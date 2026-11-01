@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Offline SOS — Routing</title>
+  <style>
+    body {
+      background-color: #0a0a0f;
+      color: #e0e0e0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+      box-sizing: border-box;
+    }
+    .card {
+      background: #14141f;
+      border: 1px solid #2a2a3e;
+      border-radius: 12px;
+      padding: 30px;
+      max-width: 420px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    .icon { font-size: 48px; margin-bottom: 12px; }
+    h1 { font-size: 20px; color: #fff; margin: 0 0 10px; }
+    p { color: #8888aa; font-size: 14px; margin: 0 0 20px; line-height: 1.5; }
+    .btn {
+      display: inline-block;
+      background: #ff1744;
+      color: #fff;
+      text-decoration: none;
+      font-weight: bold;
+      padding: 12px 24px;
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(255, 23, 68, 0.4);
+      transition: background 0.2s;
+    }
+    .btn:hover { background: #d50000; }
+  </style>
+  <script>
+    (function() {
+      // Correct base repository URL with exact casing
+      var correctBase = "/Offline-SOS-Communication/";
+      var path = window.location.pathname;
+
+      // If user typed lowercase or wrong casing, redirect to exact casing immediately
+      if (!path.startsWith(correctBase)) {
+        window.location.replace(correctBase);
+      } else {
+        // If already on the path or sub-resource, fallback to index.html
+        window.location.replace(correctBase + "index.html");
+      }
+    })();
+  </script>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">🚨</div>
+    <h1>Opening Offline Emergency SOS...</h1>
+    <p>Redirecting you to the emergency communication system.</p>
+    <a class="btn" href="/Offline-SOS-Communication/">Click here if not redirected</a>
+  </div>
+</body>
+</html>
