@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!--
+    ============================================================
+    OFFLINE EMERGENCY SOS COMMUNICATION SYSTEM
+    Student Engineering Project
+    
+    Technology: HTML, CSS, JavaScript (fully local, no internet required)
+    Purpose   : Simulate offline emergency message communication
+    Note      : This is a SOFTWARE SIMULATION only. It does NOT
+                use real Bluetooth, LoRa, RF, or any wireless tech.
+    ============================================================
+  -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <title>Offline Emergency SOS Communication System</title>
+  
+  <!-- PWA & Mobile Web Capabilities -->
+  <meta name="theme-color" content="#ff1744" />
+  <meta name="description" content="Simulated Offline Emergency SOS Communication and Geolocation System (Progressive Web App)" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Offline SOS" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ===================== HEADER ===================== -->
+  <header class="app-header">
+    <div class="header-icon">🚨</div>
+    <div class="header-text">
+      <h1>Offline Emergency SOS Communication System</h1>
+      <p class="header-sub">Local Browser Simulation &mdash; No Internet Required</p>
+    </div>
+    <!-- PWA Network status & Install Button -->
+    <div class="header-actions">
+      <span class="badge badge-green" id="networkStatus" title="Browser Internet Connectivity Status">🌐 Online</span>
+      <button type="button" class="btn-install-pwa" id="btnInstallPwa" style="display:none;" onclick="triggerPwaInstall()" title="Install as standalone mobile/desktop app">📲 Install App</button>
+      <div class="header-clock" id="headerClock">--:--:--</div>
+    </div>
+  </header>
+
+  <!-- ===================== TESTING SCENARIO BUTTONS ===================== -->
+  <section class="scenario-bar" aria-label="Testing Scenarios">
+    <span class="scenario-label">⚡ Quick Test Scenarios:</span>
+    <button class="btn-scenario" onclick="runScenario('success')"      title="Enable channel and send SOS in range">✅ Successful SOS</button>
+    <button class="btn-scenario" onclick="runScenario('disabled')"     title="Disable channel then send SOS">❌ Channel Disabled</button>
+    <button class="btn-scenario" onclick="runScenario('outofrange')"   title="Set sender out of range then send SOS">📡 Out of Range</button>
+    <button class="btn-scenario" onclick="runScenario('boundary')"     title="Test transmission at exact boundary limit">📐 Boundary Range</button>
+    <button class="btn-scenario" onclick="runScenario('weak')"         title="Test transmission with weak signal">⚡ Weak Signal</button>
+    <button class="btn-scenario" onclick="runScenario('acknowledge')"  title="Send SOS and auto-acknowledge">✔️ Acknowledge</button>
+    <button class="btn-scenario" onclick="runScenario('multiple')"     title="Send 3 SOS messages rapidly">🔁 Multiple SOS</button>
+    <button class="btn-scenario" onclick="runScenario('location')"     title="Send SOS with location coordinates">📍 SOS + Location</button>
+    <button class="btn-scenario" onclick="runDiagnosticsSuite()"       title="Run full automated diagnostic test suite">🧪 Full Test Suite</button>
+  </section>
+
+  <!-- ===================== STATS COUNTERS BAR ===================== -->
+  <!-- Shows live totals for the current session -->
+  <div class="stats-bar" aria-label="Session Statistics">
+    <div class="stat-item">
+      <span class="stat-value" id="statSent">0</span>
+      <span class="stat-label">Sent</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item stat-success">
+      <span class="stat-value" id="statDelivered">0</span>
+      <span class="stat-label">Delivered</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item stat-danger">
+      <span class="stat-value" id="statFailed">0</span>
+      <span class="stat-label">Failed</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item stat-ack">
+      <span class="stat-value" id="statAcked">0</span>
+      <span class="stat-label">Acknowledged</span>
+    </div>
+  </div>
+
+  <!-- Mobile Navigation Bar (Visible on mobile/tablet screens only) -->
+  <nav class="mobile-nav" id="mobileNav" aria-label="Mobile Dashboard Navigation">
+    <button type="button" class="mobile-nav-btn active" id="tabSender" onclick="switchMobileTab('sender')">📤 Sender</button>
+    <button type="button" class="mobile-nav-btn" id="tabChannel" onclick="switchMobileTab('channel')">📡 Channel</button>
+    <button type="button" class="mobile-nav-btn" id="tabReceiver" onclick="switchMobileTab('receiver')">📥 Receiver</button>
+    <button type="button" class="mobile-nav-btn" id="tabAll" onclick="switchMobileTab('all')">📋 All</button>
+  </nav>
+
+  <!-- ===================== MAIN 3-COLUMN GRID ===================== -->
+  <main class="main-grid" id="mainGrid">
+
+    <!-- ============================================================
+         PANEL 1: SENDER DASHBOARD
+         The sender initiates the emergency SOS message.
+    ============================================================ -->
+    <section class="panel panel-sender" id="panelSender" aria-label="Sender Dashboard">
+      <div class="panel-header">
+        <span class="panel-icon">📤</span>
+        <h2>Sender Dashboard</h2>
+      </div>
+
+      <!-- Sender ID — now editable. Change the ID before sending. -->
+      <div class="info-row">
+        <label for="senderIdInput">Sender ID:</label>
+        <span class="badge badge-blue" id="senderId">SENDER-001</span>
+      </div>
+      <div class="form-group" style="margin-top:-4px;">
+        <input
+          type="text"
+          id="senderIdInput"
+          maxlength="20"
+          placeholder="e.g. SENDER-001"
+          oninput="syncIdBadges()"
+          aria-label="Sender ID"
+          class="id-input"
+        />
+      </div>
+
+      <!-- Timestamp of last send attempt -->
+      <div class="info-row">
+        <label>Last Attempt:</label>
+        <span class="muted" id="senderTimestamp">—</span>
+      </div>
+
+      <!-- Transmission Status Indicator -->
+      <div class="info-row">
+        <label>TX Status:</label>
+        <span class="badge badge-grey" id="txStatus">IDLE</span>
+      </div>
+
+      <!-- Acknowledgement Status Indicator on Sender -->
+      <div class="info-row">
+        <label>ACK Status:</label>
+        <span class="badge badge-grey" id="senderAckStatus">—</span>
+      </div>
+
+      <!-- Quick Emergency Presets -->
+      <div class="preset-group">
+        <span class="preset-label">Quick Presets:</span>
+        <div class="preset-buttons">
+          <button type="button" class="btn-preset" onclick="applyPreset('medical')">🚑 Medical</button>
+          <button type="button" class="btn-preset" onclick="applyPreset('fire')">🔥 Fire</button>
+          <button type="button" class="btn-preset" onclick="applyPreset('trapped')">⚠️ Trapped</button>
+          <button type="button" class="btn-preset" onclick="applyPreset('flood')">🌊 Flood</button>
+        </div>
+      </div>
+
+      <!-- Emergency Message Input Field -->
+      <div class="form-group">
+        <label for="sosMessage">Emergency Message:</label>
+        <textarea
+          id="sosMessage"
+          rows="3"
+          maxlength="200"
+          placeholder="Type your emergency message here... (or leave blank for default SOS)"
+          aria-label="Emergency message input"
+        ></textarea>
+        <small class="char-count" id="charCount">0 / 200</small>
+      </div>
+
+      <!-- ================= SENDER GPS LOCATION MODULE ================= -->
+      <div class="location-box" id="senderLocationBox">
+        <div class="location-box-header">
+          <span class="location-box-title">📍 Sender GPS Location</span>
+          <span class="badge badge-grey" id="locationStatusBadge">Unavailable</span>
+        </div>
+
+        <div class="location-summary">
+          <div class="info-row">
+            <label>Coordinates:</label>
+            <span class="mono" id="displayCoords">Lat: —, Lon: —</span>
+          </div>
+          <div class="info-row">
+            <label>Source:</label>
+            <span class="badge badge-grey" id="locationSourceBadge">Not Captured</span>
+          </div>
+          <div class="info-row">
+            <label>Captured At:</label>
+            <span class="mono muted" id="locationTimestamp">—</span>
+          </div>
+        </div>
+
+        <!-- Location Controls -->
+        <div class="location-actions">
+          <button type="button" class="btn-location" id="btnGetGps" onclick="requestGpsLocation(true)" title="Acquire GPS coordinates via browser Geolocation API">
+            🛰️ Get Live GPS
+          </button>
+          <button type="button" class="btn-location-secondary" id="btnToggleManual" onclick="toggleManualCoords()" title="Toggle manual test coordinate entry">
+            ✏️ Manual Coords
+          </button>
+        </div>
+
+        <!-- Collapsible Manual Coordinate Entry -->
+        <div class="manual-coords-form" id="manualCoordsForm" style="display:none;">
+          <div class="coords-inputs">
+            <div class="coords-field">
+              <label for="manualLat">Latitude (-90 to 90):</label>
+              <input type="number" id="manualLat" step="0.000001" min="-90" max="90" value="12.971598" placeholder="e.g. 12.971598" />
+            </div>
+            <div class="coords-field">
+              <label for="manualLon">Longitude (-180 to 180):</label>
+              <input type="number" id="manualLon" step="0.000001" min="-180" max="180" value="77.594566" placeholder="e.g. 77.594566" />
+            </div>
+          </div>
+          <div class="preset-buttons" style="margin-top:6px;">
+            <button type="button" class="btn-preset" onclick="setManualPreset('city')">🏙️ Urban Center</button>
+            <button type="button" class="btn-preset" onclick="setManualPreset('mountain')">⛰️ Mountain Peak</button>
+            <button type="button" class="btn-preset" onclick="setManualPreset('coastal')">🌊 Coastal Port</button>
+          </div>
+          <button type="button" class="btn-apply-coords" onclick="applyManualCoords()">✔ Apply Manual Coordinates</button>
+        </div>
+
+        <div class="location-disclaimer">
+          ⚠️ GPS is fetched via Browser API. This is a local software simulation &mdash; it does not prove offline wireless transmission.
+        </div>
+      </div>
+
+      <!-- Big Red SOS Button -->
+      <button
+        id="sosBtn"
+        class="btn-sos"
+        onclick="sendSOS()"
+        aria-label="Send SOS Emergency Message"
+        title="Click to transmit SOS message"
+      >
+        🆘 SEND SOS
+      </button>
+
+      <!-- Retry button — hidden by default, shown only after a failure -->
+      <button
+        id="retryBtn"
+        class="btn-retry"
+        onclick="retrySOS()"
+        style="display:none;"
+        title="Retry the last failed transmission"
+        aria-label="Retry last SOS"
+      >
+        🔄 Retry Last SOS
+      </button>
+
+      <!-- Last transmitted message ID -->
+      <div class="info-row" style="margin-top:8px;">
+        <label>Last Msg ID:</label>
+        <span class="mono muted" id="lastMsgId">—</span>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         PANEL 2: SIMULATED OFFLINE CHANNEL
+         This panel controls and visualises the simulated communication
+         channel. NOT a real wireless channel — software simulation only.
+    ============================================================ -->
+    <section class="panel panel-channel" id="panelChannel" aria-label="Simulated Offline Channel">
+      <div class="panel-header">
+        <span class="panel-icon">📡</span>
+        <h2>Simulated Offline Channel</h2>
+      </div>
+
+      <!-- Important disclaimer label -->
+      <div class="channel-label">⚠️ SIMULATED OFFLINE CHANNEL — NOT REAL RF/BT/LoRa</div>
+
+      <!-- Channel Enable / Disable Toggle -->
+      <div class="toggle-row">
+        <span class="toggle-text">Channel Status:</span>
+        <label class="toggle-switch" title="Enable or disable the simulated channel">
+          <input type="checkbox" id="channelToggle" checked onchange="toggleChannel()" />
+          <span class="slider"></span>
+        </label>
+        <span class="badge" id="channelStatusBadge" style="background:#00e676;color:#000;">ENABLED</span>
+      </div>
+
+      <!-- Animated channel wave indicator -->
+      <div class="wave-container" id="waveContainer" aria-hidden="true">
+        <div class="wave wave1"></div>
+        <div class="wave wave2"></div>
+        <div class="wave wave3"></div>
+        <div class="wave-center">📡</div>
+      </div>
+
+      <!-- Communication Range Slider -->
+      <div class="slider-group">
+        <label for="rangeSlider">
+          Simulated Range: <strong id="rangeVal">80</strong> units
+        </label>
+        <input
+          type="range" id="rangeSlider" min="10" max="100" value="80"
+          oninput="updateRange(this.value)"
+          aria-label="Adjust simulated communication range"
+        />
+      </div>
+
+      <!-- Sender Distance Slider -->
+      <div class="slider-group">
+        <label for="distSlider">
+          Sender Distance: <strong id="distVal">30</strong> units
+        </label>
+        <input
+          type="range" id="distSlider" min="0" max="150" value="30"
+          oninput="updateDist(this.value)"
+          aria-label="Adjust simulated sender distance"
+        />
+      </div>
+
+      <!-- In-range status indicator -->
+      <div class="info-row">
+        <label>Range Check:</label>
+        <span class="badge badge-green" id="rangeStatus">IN RANGE ✅</span>
+      </div>
+
+      <!-- Transmission delay control -->
+      <div class="slider-group">
+        <label for="delaySlider">
+          TX Delay: <strong id="delayVal">1500</strong> ms
+        </label>
+        <input
+          type="range" id="delaySlider" min="500" max="5000" value="1500" step="100"
+          oninput="updateDelay(this.value)"
+          aria-label="Adjust simulated transmission delay"
+        />
+      </div>
+
+      <!-- Message delivery status display -->
+      <div class="info-row">
+        <label>Delivery Status:</label>
+        <span class="badge badge-grey" id="deliveryStatus">WAITING</span>
+      </div>
+
+      <!-- Current message ID in transit -->
+      <div class="info-row">
+        <label>Msg ID in Transit:</label>
+        <span class="mono muted" id="transitMsgId">—</span>
+      </div>
+
+      <!-- Signal Strength Meter -->
+      <!-- Calculated as: (1 - distance/range) * 100% -->
+      <div class="signal-group">
+        <span class="signal-label" id="signalLabel">Signal: Strong</span>
+        <div class="signal-wrap">
+          <div class="signal-bar" id="signalBar" style="width:100%;"></div>
+        </div>
+      </div>
+
+      <!-- Transmission progress bar -->
+      <div class="progress-wrap" id="progressWrap" style="display:none;">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         PANEL 3: RECEIVER DASHBOARD
+         The receiver displays incoming SOS messages and can acknowledge them.
+    ============================================================ -->
+    <section class="panel panel-receiver" id="panelReceiver" aria-label="Receiver Dashboard">
+      <div class="panel-header">
+        <span class="panel-icon">📥</span>
+        <h2>Receiver Dashboard</h2>
+      </div>
+
+      <!-- Receiver ID — editable, like Sender ID -->
+      <div class="info-row">
+        <label for="receiverIdInput">Receiver ID:</label>
+        <span class="badge badge-purple" id="receiverId">RECEIVER-001</span>
+      </div>
+      <div class="form-group" style="margin-top:-4px;">
+        <input
+          type="text"
+          id="receiverIdInput"
+          maxlength="20"
+          placeholder="e.g. RECEIVER-001"
+          oninput="syncIdBadges()"
+          aria-label="Receiver ID"
+          class="id-input"
+        />
+      </div>
+
+      <!-- Emergency alert indicator — pulses when new SOS arrives -->
+      <div class="alert-indicator idle" id="alertIndicator" aria-live="polite" aria-label="Emergency alert status">
+        <span class="alert-dot" id="alertDot"></span>
+        <span id="alertText">STANDBY — No Active Alert</span>
+      </div>
+
+      <!-- ACK status of last received message -->
+      <div class="info-row">
+        <label>ACK Status:</label>
+        <span class="badge badge-grey" id="ackStatus">—</span>
+      </div>
+
+      <!-- List of received SOS messages -->
+      <div class="messages-header">
+        <span class="messages-label">📨 Received SOS Messages:</span>
+        <button class="btn-clear-msgs" onclick="clearMessages()" title="Clear all received messages">🗑 Clear</button>
+      </div>
+      <div class="messages-list" id="messagesList" aria-live="polite" aria-label="Received messages">
+        <div class="no-messages muted">No messages received yet.</div>
+      </div>
+    </section>
+
+  </main><!-- end .main-grid -->
+
+  <!-- ===================== EVENT LOG ===================== -->
+  <section class="event-log-section" aria-label="Event Log">
+    <div class="event-log-header">
+      <h2>📋 Event Log</h2>
+      <button class="btn-clear" onclick="clearLog()" title="Clear all log entries">🗑️ Clear Log</button>
+    </div>
+    <!-- Log entries are prepended here by JavaScript -->
+    <div class="event-log" id="eventLog" aria-live="polite" aria-label="Event log">
+      <div class="log-entry log-info">
+        <span class="log-time">--:--:--</span>
+        <span class="log-type">SYSTEM</span>
+        <span class="log-msg">System initialized. Ready for SOS transmission simulation.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== FOOTER ===================== -->
+  <footer class="app-footer">
+    <p>
+      🎓 Student Engineering Project &mdash;
+      <strong>Offline Emergency SOS Communication System</strong> &mdash;
+      All communication is <em>software-simulated</em>. No real wireless transmission occurs.
+    </p>
+  </footer>
+
+  <!-- Load the application JavaScript -->
+  <script src="app.js"></script>
+
+</body>
+</html>
